@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EEG Live Monitor — GP2 Epilepsy Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#2563eb;--blue-lt:#eff6ff;--blue-bd:#bfdbfe;
+  --green:#15803d;--green-lt:#f0fdf4;--green-bd:#bbf7d0;
+  --amber:#b45309;--amber-lt:#fffbeb;--amber-bd:#fde68a;
+  --red:#be123c;--red-lt:#fff1f2;--red-bd:#fecdd3;
+  --purple:#7c3aed;--purple-lt:#faf5ff;--purple-bd:#ddd6fe;
+  --slate:#0f172a;--muted:#94a3b8;--border:#e2e8f0;--bg:#f1f5f9;
+  --font-mono:'IBM Plex Mono','Courier New',monospace;
+  --font-ui:'Syne',sans-serif;
+}
+html{height:100%;overflow-y:scroll;scrollbar-width:thin;scrollbar-color:#94a3b8 #e2e8f0}
+body{min-height:100%;background:var(--bg);font-family:var(--font-mono)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#e2e8f0;border-radius:4px}
+::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#64748b}
+#header{background:white;border-bottom:1px solid var(--border);padding:12px 20px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 1px 4px #0000000a}
+#logo{width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,#dc2626,#7c3aed);
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+#hd-title{font-family:var(--font-ui);font-weight:800;font-size:16px;
+  color:var(--slate);letter-spacing:-.5px}
+#hd-sub{font-size:9px;color:var(--muted);margin-top:1px;
+  font-family:var(--font-ui);letter-spacing:1px}
+#hd-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.badge{padding:3px 10px;border-radius:5px;font-size:10px;
+  font-family:var(--font-ui);font-weight:700;border:1px solid}
+.badge-red{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+.badge-green{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}
+.badge-blue{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}
+.badge-amber{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.badge-purple{background:#faf5ff;color:#7c3aed;border-color:#ddd6fe}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#16a34a;margin-right:4px;animation:pulse 1.5s infinite}
+#top-strip{background:#f8fafc;border-bottom:1px solid var(--border);padding:8px 16px;flex-shrink:0}
+.strip-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.strip-label{font-size:9px;color:var(--muted);font-family:var(--font-ui);
+  font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-right:4px}
+.tab-btn,.stage-btn,.srcbtn{padding:4px 12px;border-radius:6px;cursor:pointer;
+  font-size:10px;font-family:var(--font-ui);font-weight:700;letter-spacing:1px;
+  border:1px solid var(--border);background:white;color:var(--muted);transition:all .15s}
+.tab-btn.on{background:var(--blue-lt);color:var(--blue);border-color:var(--blue-bd)}
+.stage-btn.on{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+.srcbtn.on{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}
+.tab-btn:hover,.stage-btn:hover,.srcbtn:hover{border-color:#cbd5e1;color:#6b7280}
+.strip-sep{width:1px;height:16px;background:var(--border);margin:0 2px}
+#raw-panel{background:#f8fafc;border-bottom:1px solid var(--border);padding:12px 16px;flex-shrink:0}
+#raw-toolbar{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+#new-sample-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--border);
+  background:white;color:#6b7280;cursor:pointer;font-size:10px;
+  font-family:var(--font-ui);font-weight:700}
+#upload-name{font-size:10px;color:#16a34a;font-family:var(--font-ui);font-weight:600}
+#legend{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-line{width:16px;height:2.5px;border-radius:2px}
+.legend-label{font-size:10px;color:#6b7280;font-family:var(--font-ui);
+  text-transform:capitalize;font-weight:500}
+#upload-zone{border:2px dashed var(--border);border-radius:10px;padding:18px;
+  text-align:center;cursor:pointer;transition:all .2s;background:white;
+  margin-bottom:10px;display:none}
+#upload-zone.drag{border-color:var(--blue);background:var(--blue-lt)}
+#upload-zone:hover{border-color:#cbd5e1}
+#upload-zone .uz-icon{font-size:20px;margin-bottom:5px}
+#upload-zone .uz-title{color:#374151;font-family:var(--font-ui);
+  font-size:11px;font-weight:700;margin-bottom:3px}
+#upload-zone .uz-sub{color:#9ca3af;font-size:10px}
+#upload-error{color:#dc2626;font-size:10px;margin-top:5px}
+#plot-wrap{background:white;border-radius:10px;border:1px solid var(--border);
+  overflow:hidden;box-shadow:0 1px 4px #0000000a}
+#waveform-canvas,#psd-canvas{display:block;width:100%}
+#psd-canvas{display:none}
+#raw-table-wrap{padding:12px;max-height:200px;overflow-y:auto;display:none}
+
+/* DETECTION PANEL */
+#detect-panel{background:linear-gradient(135deg,#fef3c7,#dbeafe);border-radius:10px;
+  border:1px solid #c7d2fe;padding:10px 12px;margin-bottom:10px;display:none;
+  box-shadow:0 1px 3px #00000010}
+#detect-panel.visible{display:block;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.dp-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dp-title{font-family:var(--font-ui);font-weight:800;font-size:11px;color:#1e3a8a;
+  letter-spacing:1.5px;text-transform:uppercase}
+.dp-conf{font-size:9px;color:#92400e;font-family:var(--font-ui);font-weight:700;
+  background:#fef3c7;padding:2px 6px;border-radius:3px;border:1px solid #fde68a}
+.dp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;font-size:10px}
+.dp-cell{background:white;border-radius:6px;padding:6px 8px;border:1px solid #e5e7eb}
+.dp-k{font-size:8px;color:#6b7280;font-family:var(--font-ui);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.dp-v{color:#0f172a;font-weight:600;font-size:11px;margin-top:2px;font-family:var(--font-mono)}
+.dp-v.red{color:#be123c}.dp-v.amber{color:#b45309}.dp-v.green{color:#16a34a}
+#stats-strip{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.stat-card{flex:1;min-width:88px;background:white;border:1px solid var(--border);
+  border-radius:8px;padding:7px 10px;box-shadow:0 1px 3px #0000000a;border-top:3px solid}
+.stat-region{font-size:9px;font-family:var(--font-ui);font-weight:800;
+  margin-bottom:5px;text-transform:uppercase}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px;
+  font-size:9px;font-family:var(--font-mono)}
+.stat-k{color:#9ca3af}.stat-v{color:#374151;font-weight:500}
+
+/* PREPROCESSING STRIP */
+#preprocess-strip{background:white;border-top:1px solid var(--border);
+  padding:10px 16px;flex-shrink:0;display:none}
+#ps-title{font-size:9px;color:var(--muted);font-family:var(--font-ui);
+  font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px}
+#ps-flow{display:flex;align-items:stretch;gap:0;overflow-x:auto}
+.ps-step{flex:1;min-width:130px;position:relative;cursor:pointer}
+.ps-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;
+  transform:translateY(-50%);font-size:14px;color:var(--muted);z-index:2}
+.ps-box{border:1px solid var(--border);border-radius:8px;padding:8px 10px;
+  background:#f8fafc;transition:all .25s;height:100%}
+.ps-box:hover{border-color:#cbd5e1;background:white}
+.ps-box.active{background:#fff1f2;border-color:#fecdd3;
+  box-shadow:0 0 0 3px #fecdd370}
+.ps-box.done{background:#f0fdf4;border-color:#bbf7d0}
+.ps-num{width:18px;height:18px;border-radius:50%;background:#e5e7eb;color:#6b7280;
+  font-size:9px;font-weight:700;display:inline-flex;align-items:center;
+  justify-content:center;margin-bottom:4px;font-family:var(--font-ui)}
+.ps-box.active .ps-num{background:#dc2626;color:white}
+.ps-box.done .ps-num{background:#16a34a;color:white}
+.ps-name{font-size:10px;font-weight:700;color:#374151;font-family:var(--font-ui);margin-bottom:2px}
+.ps-sub{font-size:9px;color:var(--muted);font-family:var(--font-ui)}
+.ps-params{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap}
+.pp{font-size:8px;padding:1px 5px;border-radius:3px;
+  background:#f3f4f6;color:#6b7280;font-family:var(--font-ui);font-weight:600}
+.ps-box.active .pp{background:#fde68a;color:#92400e}
+.ps-box.done .pp{background:#dcfce7;color:#166534}
+.ps-snr{font-size:9px;color:#16a34a;font-family:var(--font-mono);font-weight:700;margin-top:3px;display:none}
+.ps-box.done .ps-snr,.ps-box.active .ps-snr{display:block}
+
+/* MAIN COLUMNS */
+#main-cols{display:grid;grid-template-columns:1fr 1fr 300px;
+  min-height:700px}
+.col{padding:16px;background:white}
+.col:not(:last-child){border-right:1px solid var(--border)}
+#feat-col{background:#f8fafc;border-left:1px solid var(--border)}
+.seclabel{font-family:var(--font-ui);font-size:9px;font-weight:800;
+  letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.secnum{width:22px;height:22px;border-radius:50%;background:var(--blue);
+  color:white;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auto-tag{font-size:8px;padding:1px 6px;border-radius:3px;background:#fef3c7;
+  color:#92400e;border:1px solid #fde68a;font-family:var(--font-ui);font-weight:700;
+  margin-left:auto;letter-spacing:.5px;display:none}
+.auto-tag.show{display:inline-flex;align-items:center;gap:3px}
+.divider{height:1px;background:#f1f5f9;margin:14px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;
+  border-radius:999px;cursor:pointer;font-size:11px;font-weight:500;
+  font-family:var(--font-ui);border:1.5px solid var(--border);
+  background:white;color:#9ca3af;transition:all .15s;user-select:none;white-space:nowrap;position:relative}
+.chip.on{background:var(--blue-lt);color:#1d4ed8;border-color:#93c5fd}
+.chip.on-teal{background:#ecfeff;color:#0e7490;border-color:#a5f3fc}
+.chip.on-violet{background:#faf5ff;color:#6d28d9;border-color:#c4b5fd}
+.chip.on-time{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
+.chip.on-freq{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+.chip.on-tf{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.chip.on-nl{background:#fff1f2;color:#9f1239;border-color:#fecdd3}
+.chip.on-conn{background:#faf5ff;color:#5b21b6;border-color:#ddd6fe}
+.chip.detected::before{content:'✦';position:absolute;top:-4px;right:-4px;
+  background:#fbbf24;color:white;width:14px;height:14px;border-radius:50%;
+  font-size:9px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 3px #0000004d}
+.chip .ck{font-size:9px}
+.warn{font-size:10px;color:#d97706;margin-bottom:8px;
+  font-family:var(--font-ui);font-weight:600}
+.slider-row{margin-bottom:14px}
+.slider-header{display:flex;justify-content:space-between;margin-bottom:5px}
+.slider-label{font-size:11px;color:#6b7280;font-family:var(--font-ui)}
+.slider-val{font-size:12px;color:var(--blue);font-weight:700}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;
+  border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--blue);border:2px solid white;
+  box-shadow:0 1px 4px #3b82f640}
+#stat-boxes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.statbox{background:white;border:1px solid var(--border);border-radius:10px;
+  padding:12px;text-align:center;box-shadow:0 1px 3px #0000000d}
+.statbox-val{font-size:22px;font-weight:800;font-family:var(--font-ui)}
+.statbox-lbl{font-size:9px;color:#9ca3af;font-family:var(--font-ui);margin-top:2px;letter-spacing:.5px}
+#embed-cfg{background:#f8fafc;border:1px solid var(--border);border-radius:10px;
+  padding:13px;margin-bottom:14px;font-size:11px}
+.cfg-title{font-family:var(--font-ui);font-size:9px;color:var(--muted);
+  letter-spacing:1.5px;margin-bottom:9px;font-weight:700}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:10px}
+.cfg-k{color:#9ca3af}.cfg-v{font-weight:600}
+#run-btn{width:100%;padding:13px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,#dc2626,#7c3aed);color:white;
+  font-family:var(--font-ui);font-size:12px;font-weight:800;
+  letter-spacing:2px;cursor:pointer;text-transform:uppercase;
+  box-shadow:0 4px 14px #dc262630;transition:all .2s}
+#run-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px #dc262640}
+#run-btn:active{transform:translateY(0)}
+#run-btn.loading{opacity:.7;cursor:wait}
+#feat-header{position:sticky;top:0;background:white;border-bottom:1px solid var(--border);
+  padding:12px 14px 10px;z-index:10;box-shadow:0 1px 4px #0000000a}
+#feat-list-title{font-family:var(--font-ui);font-size:9px;color:var(--muted);
+  letter-spacing:2px;margin-bottom:4px;font-weight:800;display:flex;align-items:center;gap:6px}
+#feat-summary{font-size:10px;color:#6b7280;font-family:var(--font-ui)}
+#feat-list-wrap{padding:8px}
+@keyframes slideInFeat{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}
+.frow{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 11px;border-radius:7px;margin-bottom:4px;
+  border:1px solid #f1f5f9;background:white;transition:all .1s;
+  box-shadow:0 1px 2px #0000000a;animation:slideInFeat .2s ease both}
+.frow:hover{background:#f8fafc;border-color:#e2e8f0;box-shadow:0 2px 6px #00000010}
+.frow.pri{background:#fffbeb;border-color:#fde68a}
+.frow-left{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;flex:1}
+.frow-name{font-size:11px;font-family:var(--font-mono);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow-val{font-size:10px;color:#2563eb;font-family:var(--font-mono);font-weight:600;
+  background:#eff6ff;padding:1px 5px;border-radius:3px;margin-left:auto}
+.frow-tags{display:flex;gap:3px;flex-shrink:0;margin-left:5px}
+.dtag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;
+  letter-spacing:.4px;font-family:var(--font-ui);flex-shrink:0}
+.ftag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;
+  background:#fef3c7;color:#92400e;border:1px solid #fde68a;
+  font-family:var(--font-ui);flex-shrink:0}
+.star{color:#d97706;font-size:10px;flex-shrink:0}
+.feat-empty{padding:30px 12px;text-align:center;color:#cbd5e1;
+  font-size:11px;font-family:var(--font-ui)}
+.rtable{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:10px}
+.rtable th{padding:5px 8px;text-align:left;color:#6b7280;font-weight:700;font-size:9px;
+  letter-spacing:1px;border-bottom:2px solid #e5e7eb;background:#f9fafb}
+.rtable th.r{text-align:right}
+.rtable td{padding:3px 8px;border-bottom:1px solid #f3f4f6}
+.rtable tr:nth-child(even) td{background:#fafafa}
+.pg-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pg-btn{padding:3px 9px;border-radius:4px;border:1px solid #d1d5db;
+  background:white;cursor:pointer;font-size:10px}
+.pg-btn:disabled{color:#d1d5db;cursor:default}
+.api-banner{position:sticky;top:0;z-index:9999;padding:12px 18px;font-family:var(--font-ui);font-size:12px;line-height:1.55;border-bottom:2px solid;}
+.api-banner.err{background:#fef2f2;color:#991b1b;border-color:#fca5a5;}
+.api-banner.warn{background:#fffbeb;color:#92400e;border-color:#fcd34d;}
+.api-banner code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:11px;}
+.api-banner a{color:inherit;text-decoration:underline;font-weight:600;}
+.api-banner b{font-weight:700;}
+</style>
+</head>
+<body>
+<div id="api-banner" class="api-banner err" style="display:none"></div>
+<div id="header">
+  <div id="logo">⚡</div>
+  <div>
+    <div id="hd-title">EEG Live Monitoring System</div>
+    <div id="hd-sub">GP2 EPILEPSY · AUTO-DETECT · LIVE PREPROCESSING · DYNAMIC FEATURES</div>
+  </div>
+  <div id="hd-right">
+    <span id="hd-info" style="font-size:10px;color:#94a3b8;font-family:var(--font-ui)">256Hz · 4ch · 4s</span>
+    <span id="badge-seizure" class="badge badge-red" style="display:none">⚡ SEIZURE</span>
+    <span id="badge-stage" class="badge badge-amber" style="display:none">STAGE 0/6</span>
+    <span class="badge badge-green"><span class="live-dot"></span>LIVE</span>
+    <span id="badge-dim" class="badge badge-blue">0D</span>
+  </div>
+</div>
+
+<div id="top-strip">
+  <div class="strip-row">
+    <span class="strip-label">Source</span>
+    <button class="srcbtn on" data-src="synthetic" onclick="setSource('synthetic')">⚡ Synthetic</button>
+    <button class="srcbtn" data-src="upload" onclick="setSource('upload')">📁 Upload</button>
+    <div class="strip-sep"></div>
+    <span class="strip-label">View</span>
+    <button class="tab-btn on" data-tab="waveform" onclick="setPlotTab('waveform')">WAVEFORM</button>
+    <button class="tab-btn" data-tab="psd" onclick="setPlotTab('psd')">PSD</button>
+    <button class="tab-btn" data-tab="table" onclick="setPlotTab('table')">RAW TABLE</button>
+    <div class="strip-sep"></div>
+    <span class="strip-label">Pipeline</span>
+    <button class="tab-btn" id="pp-toggle-btn" onclick="togglePreprocess()">SHOW STAGES</button>
+    <button class="tab-btn" id="auto-run-btn" onclick="autoRunStages()">▶ AUTO</button>
+    <button class="tab-btn" id="live-btn" onclick="runLivePipeline()" style="background:#fff1f2;color:#be123c;border-color:#fecdd3">⚡ LIVE</button>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <button id="new-sample-btn" onclick="newSample()">↻ New Sample</button>
+      <span id="upload-name" style="display:none"></span>
+    </div>
+  </div>
+</div>
+
+<div id="raw-panel">
+  <div id="raw-toolbar">
+    <div style="font-family:var(--font-ui);font-size:9px;font-weight:800;letter-spacing:2px;color:#94a3b8;margin-right:4px">RAW DATA</div>
+  </div>
+
+  <div id="upload-zone"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleDrop(event)"
+    onclick="document.getElementById('file-input').click()">
+    <input id="file-input" type="file" accept=".csv,.txt,.tsv"
+      style="display:none" onchange="handleFileInput(event)"/>
+    <div id="uz-content">
+      <div class="uz-icon">📂</div>
+      <div class="uz-title">Drop your EEG file here or click to browse</div>
+      <div class="uz-sub">Supported: .csv / .txt / .tsv — channel labels in header (T7,F7,O1...) auto-mapped to regions</div>
+    </div>
+    <div id="upload-error"></div>
+  </div>
+
+  <!-- LIVE DETECTION PANEL -->
+  <div id="detect-panel">
+    <div class="dp-header">
+      <span class="dp-title">⚡ Auto-Detected from Raw Data</span>
+      <span id="dp-conf" class="dp-conf">Confidence: 0%</span>
+    </div>
+    <div id="dp-grid" class="dp-grid"></div>
+  </div>
+
+  <div id="legend"></div>
+  <div id="plot-wrap">
+    <canvas id="waveform-canvas" height="180"></canvas>
+    <canvas id="psd-canvas" height="80"></canvas>
+    <div id="raw-table-wrap">
+      <div class="pg-bar">
+        <span id="pg-info" style="color:#6b7280;font-size:10px"></span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="pg-btn" onclick="changePage(-1)">←</button>
+          <span id="pg-num" style="color:#6b7280;font-size:10px"></span>
+          <button class="pg-btn" onclick="changePage(1)">→</button>
+        </div>
+      </div>
+      <table class="rtable" id="raw-table"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <div id="stats-strip"></div>
+</div>
+
+<div id="preprocess-strip">
+  <div id="ps-title">
+    <span>PREPROCESSING PIPELINE — click a stage to inspect • LIVE shows transformation through each filter</span>
+    <span id="ps-status" style="margin-left:auto;font-size:9px;color:#16a34a"></span>
+  </div>
+  <div id="ps-flow"></div>
+</div>
+
+<div id="main-cols">
+  <div class="col">
+    <div class="seclabel"><span class="secnum">1</span>Clinical Focus
+      <span id="auto-focus" class="auto-tag">✦ AUTO</span></div>
+    <div class="chips" id="chips-focus"></div>
+    <div class="divider"></div>
+    <div class="seclabel"><span class="secnum">2</span>Electrode / Region
+      <span id="auto-region" class="auto-tag">✦ AUTO</span></div>
+    <div class="chips" id="chips-region"></div>
+    <div id="conn-warn" class="warn" style="display:none">⚠ Select ≥2 regions for connectivity</div>
+    <div class="divider"></div>
+    <div class="seclabel"><span class="secnum">3</span>Frequency Bands
+      <span id="auto-band" class="auto-tag">✦ AUTO</span></div>
+    <div class="chips" id="chips-band"></div>
+  </div>
+  <div class="col">
+    <div class="seclabel"><span class="secnum">4</span>Epoch &amp; Window</div>
+    <div class="slider-row">
+      <div class="slider-header">
+        <span class="slider-label">Epoch length</span>
+        <span id="val-epoch" class="slider-val">4s</span>
+      </div>
+      <input type="range" id="sl-epoch" min="1" max="30" step="1" value="4"
+        oninput="updateSlider('epoch',this.value,'s')"/>
+    </div>
+    <div class="slider-row">
+      <div class="slider-header">
+        <span class="slider-label">Overlap</span>
+        <span id="val-overlap" class="slider-val">70%</span>
+      </div>
+      <input type="range" id="sl-overlap" min="0" max="90" step="5" value="70"
+        oninput="updateSlider('overlap',this.value,'%')"/>
+    </div>
+    <div class="slider-row">
+      <div class="slider-header">
+        <span class="slider-label">Wavelet level</span>
+        <span id="val-wavelet" class="slider-val">6</span>
+      </div>
+      <input type="range" id="sl-wavelet" min="1" max="10" step="1" value="6"
+        oninput="updateSlider('wavelet',this.value,'')"/>
+    </div>
+    <div class="divider"></div>
+    <div class="seclabel"><span class="secnum">5</span>Feature Domains
+      <span id="auto-domain" class="auto-tag">✦ AUTO</span></div>
+    <div class="chips" id="chips-domain"></div>
+    <div class="divider"></div>
+    <div id="stat-boxes">
+      <div class="statbox">
+        <div class="statbox-val" id="sb-total" style="color:#0f172a">0</div>
+        <div class="statbox-lbl">FEATURES</div>
+      </div>
+      <div class="statbox">
+        <div class="statbox-val" id="sb-prio" style="color:#d97706">0</div>
+        <div class="statbox-lbl">★ PRIORITY</div>
+      </div>
+      <div class="statbox">
+        <div class="statbox-val" id="sb-dim" style="color:#2563eb">0</div>
+        <div class="statbox-lbl">VECTOR DIM</div>
+      </div>
+    </div>
+    <div id="embed-cfg">
+      <div class="cfg-title">EMBEDDING CONFIG</div>
+      <div class="cfg-grid" id="cfg-grid"></div>
+    </div>
+    <button id="run-btn" onclick="runGenerate()">▶ Generate Feature Embedding</button>
+  </div>
+  <div id="feat-col">
+    <div id="feat-header">
+      <div id="feat-list-title">
+        <span>GENERATED FEATURES</span>
+        <span id="live-feat-tag" style="display:none;font-size:9px;background:#dcfce7;color:#15803d;
+          padding:2px 6px;border-radius:3px;letter-spacing:.5px">⚡ LIVE VALUES</span>
+      </div>
+      <div id="feat-summary"></div>
+    </div>
+    <div id="feat-list-wrap"></div>
+  </div>
+</div>
+
+<script>
+const FS = 256;
+const REGION_COLORS = ["#dc2626","#2563eb","#d97706","#7c3aed","#16a34a","#0891b2","#db2777","#65a30d"];
+const CLINICAL_FOCUSES = [
+  {id:"seizure",label:"Seizure detection"},
+  {id:"sleep",label:"Sleep staging"},
+  {id:"cognitive",label:"Cognitive load"},
+  {id:"emotion",label:"Emotion recognition"},
+  {id:"bci",label:"BCI / motor"},
+];
+const ELECTRODE_REGIONS = [
+  {id:"temporal",label:"Temporal"},
+  {id:"frontal",label:"Frontal"},
+  {id:"occipital",label:"Occipital"},
+  {id:"parietal",label:"Parietal"},
+  {id:"central",label:"Central"},
+];
+const FREQUENCY_BANDS = [
+  {id:"delta",label:"δ Delta",range:"0.5–4Hz"},
+  {id:"theta",label:"θ Theta",range:"4–8Hz"},
+  {id:"alpha",label:"α Alpha",range:"8–13Hz"},
+  {id:"beta",label:"β Beta",range:"13–30Hz"},
+  {id:"gamma",label:"γ Gamma",range:">30Hz"},
+  {id:"hfo",label:"HFO",range:">80Hz"},
+];
+const FEATURE_DOMAINS = [
+  {id:"time",label:"Time"},
+  {id:"frequency",label:"Frequency"},
+  {id:"time_freq",label:"Time-freq"},
+  {id:"nonlinear",label:"Nonlinear"},
+  {id:"connectivity",label:"Connectivity"},
+];
+const DC = {
+  time:        {bg:"#eff6ff",text:"#1d4ed8",border:"#bfdbfe",on:"on-time",ds:"Time"},
+  frequency:   {bg:"#f0fdf4",text:"#15803d",border:"#bbf7d0",on:"on-freq",ds:"Freq"},
+  time_freq:   {bg:"#fffbeb",text:"#b45309",border:"#fde68a",on:"on-tf",ds:"T-F"},
+  nonlinear:   {bg:"#fff1f2",text:"#be123c",border:"#fecdd3",on:"on-nl",ds:"Nonlin"},
+  connectivity:{bg:"#faf5ff",text:"#7c3aed",border:"#ddd6fe",on:"on-conn",ds:"Connect"},
+};
+
+let STAGES = [];
+
+// ──────────── Robust API helper ────────────
+// Detects: Flask not running, page opened via file://, HTML returned instead of JSON.
+// Surfaces errors visibly via #api-banner instead of swallowing them.
+function showBanner(msg, kind){
+  const el=document.getElementById("api-banner");
+  if(!el) return;
+  el.style.display="block";
+  el.className="api-banner "+(kind||"err");
+  el.innerHTML=msg;
+}
+function hideBanner(){const el=document.getElementById("api-banner"); if(el) el.style.display="none";}
+
+async function apiFetch(url, opts){
+  // Block file:// usage early with a clear message
+  if(location.protocol==="file:"){
+    const m=`This page must be served by Flask, not opened directly. <br>` +
+            `1. In a terminal: <code>python app.py</code><br>` +
+            `2. Open <a href="http://localhost:5050">http://localhost:5050</a> in your browser`;
+    showBanner(m,"err");
+    throw new Error("file:// protocol — open via http://localhost:5050");
+  }
+  let res;
+  try{
+    res = await fetch(url, opts);
+  }catch(e){
+    showBanner(`Cannot reach Flask backend at <code>${location.origin}</code>. Is <code>python app.py</code> running?`,"err");
+    throw new Error("Network error: "+e.message);
+  }
+  const ct=(res.headers.get("content-type")||"").toLowerCase();
+  const text=await res.text();
+  if(!res.ok || !ct.includes("json")){
+    const preview=text.slice(0,140).replace(/</g,"&lt;");
+    showBanner(`API call to <code>${url}</code> returned <b>HTTP ${res.status}</b> (${ct||"no content-type"}).<br>` +
+               `<small>Response started with: <code>${preview}…</code></small><br>` +
+               `Likely cause: Flask isn't running, or you opened <code>index.html</code> directly. ` +
+               `Run <code>python app.py</code> and visit <a href="http://localhost:5050">http://localhost:5050</a>.`,"err");
+    throw new Error(`Non-JSON response from ${url}: HTTP ${res.status}`);
+  }
+  hideBanner();
+  try{return JSON.parse(text);}
+  catch(e){
+    showBanner(`Malformed JSON from <code>${url}</code>.`,"err");
+    throw e;
+  }
+}
+
+
+let state = {
+  focus:["seizure"],
+  regions:["temporal","frontal","occipital","parietal"],
+  bands:["delta","theta","alpha","beta","gamma","hfo"],
+  epochLen:4,overlap:70,waveletLevel:6,
+  domains:["time","frequency","time_freq","nonlinear","connectivity"],
+  source:"synthetic",seed:1,plotTab:"waveform",
+  channels:[],features:[],tablePage:0,ppVisible:false,currentStage:-1,autoRunning:false,
+  fs:FS, lineNoiseHz:50,
+  detected:{focus:[],regions:[],bands:[],domains:[]}, // tracks what was auto-detected
+  analysis:null,
+  rawChannels:[], // preserved original samples for re-running pipeline
+  liveMode:false,
+};
+
+function buildChips(containerId,items,stateKey,activeClass,extraContent){
+  const el=document.getElementById(containerId);el.innerHTML="";
+  items.forEach(item=>{
+    const chip=document.createElement("span");
+    const isOn=state[stateKey].includes(item.id);
+    const isDetected=(state.detected[stateKey]||[]).includes(item.id);
+    chip.className="chip"+(isOn?" "+activeClass:"")+(isDetected?" detected":"");
+    chip.dataset.id=item.id;
+    chip.innerHTML=(isOn?'<span class="ck">✓ </span>':"")+(extraContent?extraContent(item):item.label);
+    chip.onclick=()=>toggleState(stateKey,item.id,activeClass,containerId,items,extraContent);
+    el.appendChild(chip);
+  });
+}
+function buildDomainChips(){
+  const el=document.getElementById("chips-domain");el.innerHTML="";
+  FEATURE_DOMAINS.forEach(item=>{
+    const c=DC[item.id];const active=state.domains.includes(item.id);
+    const isDetected=(state.detected.domains||[]).includes(item.id);
+    const chip=document.createElement("span");
+    chip.className="chip"+(active?" "+c.on:"")+(isDetected?" detected":"");
+    chip.innerHTML=(active?'<span class="ck">✓ </span>':"")+item.label;
+    chip.onclick=()=>{toggleArr(state.domains,item.id);buildDomainChips();refresh();};
+    el.appendChild(chip);
+  });
+}
+function toggleState(key,val,cls,cid,items,extra){toggleArr(state[key],val);buildChips(cid,items,key,cls,extra);refresh();}
+function toggleArr(arr,val){const i=arr.indexOf(val);if(i>=0)arr.splice(i,1);else arr.push(val);}
+
+function updateSlider(key,val,unit){
+  const n=Number(val);
+  if(key==="epoch"){state.epochLen=n;document.getElementById("val-epoch").textContent=n+"s";}
+  if(key==="overlap"){state.overlap=n;document.getElementById("val-overlap").textContent=n+"%";}
+  if(key==="wavelet"){state.waveletLevel=n;document.getElementById("val-wavelet").textContent=n;}
+  const slider=document.getElementById(`sl-${key}`);
+  const pct=((n-Number(slider.min))/(Number(slider.max)-Number(slider.min)))*100;
+  slider.style.background=`linear-gradient(to right,#3b82f6 ${pct}%,#e5e7eb ${pct}%)`;
+  refresh();
+}
+function initSlider(id,val,min,max){
+  const pct=((val-min)/(max-min))*100;
+  document.getElementById(id).style.background=`linear-gradient(to right,#3b82f6 ${pct}%,#e5e7eb ${pct}%)`;
+}
+
+function setSource(src){
+  state.source=src;
+  document.querySelectorAll(".srcbtn").forEach(b=>b.classList.toggle("on",b.dataset.src===src));
+  document.getElementById("upload-zone").style.display=src==="upload"?"block":"none";
+  document.getElementById("new-sample-btn").style.display=src==="synthetic"?"inline-block":"none";
+  if(src==="synthetic"){
+    state.detected={focus:[],regions:[],bands:[],domains:[]};
+    document.getElementById("detect-panel").classList.remove("visible");
+    ["focus","region","band","domain"].forEach(k=>document.getElementById("auto-"+k).classList.remove("show"));
+    runGenerate();
+  }
+}
+
+function setPlotTab(tab){
+  state.plotTab=tab;state.tablePage=0;
+  document.querySelectorAll(".tab-btn[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  document.getElementById("waveform-canvas").style.display=tab==="waveform"?"block":"none";
+  document.getElementById("psd-canvas").style.display=tab==="psd"?"block":"none";
+  document.getElementById("raw-table-wrap").style.display=tab==="table"?"block":"none";
+  document.getElementById("stats-strip").style.display=tab==="table"?"none":"flex";
+  renderCurrentTab();
+}
+
+function newSample(){state.seed++;runGenerate();}
+
+function togglePreprocess(){
+  state.ppVisible=!state.ppVisible;
+  document.getElementById("preprocess-strip").style.display=state.ppVisible?"block":"none";
+  document.getElementById("pp-toggle-btn").textContent=state.ppVisible?"HIDE STAGES":"SHOW STAGES";
+}
+
+async function loadStages(lineHz, peakToPeak){
+  try{
+    const body={lineNoiseHz:lineHz||state.lineNoiseHz,peakToPeak:peakToPeak||4};
+    const data=await apiFetch("/api/stages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    STAGES=data.stages||[];renderPreprocessFlow(-1);
+  }catch(e){console.error("loadStages:",e.message);}
+}
+
+function renderPreprocessFlow(activeIdx){
+  const el=document.getElementById("ps-flow");
+  el.innerHTML=STAGES.map((s,i)=>{
+    const cls=i<activeIdx?"done":i===activeIdx?"active":"";
+    const paramStr=Object.entries(s.params||{}).slice(0,3).map(([k,v])=>`<span class="pp">${k}=${v}</span>`).join("");
+    const snr=s._snr!=null?`<div class="ps-snr">SNR ${s._snr} dB</div>`:"";
+    return `<div class="ps-step" onclick="runPreprocessStage(${i})">
+      <div class="ps-box ${cls}">
+        <div class="ps-num">${i<activeIdx?"✓":i+1}</div>
+        <div class="ps-name">${s.name}</div>
+        <div class="ps-sub">${s.sub}</div>
+        <div class="ps-params">${paramStr}</div>
+        ${snr}
+      </div></div>`;
+  }).join("");
+  if(activeIdx>=0){
+    document.getElementById("badge-stage").textContent=`STAGE ${activeIdx+1}/${STAGES.length}`;
+    document.getElementById("badge-stage").style.display="inline";
+  }else{
+    document.getElementById("badge-stage").style.display="none";
+  }
+}
+
+async function runPreprocessStage(idx){
+  if(!state.channels.length)return;
+  state.currentStage=idx;renderPreprocessFlow(idx);
+  const stage=STAGES[idx];if(!stage)return;
+  const rawSamples=(state.rawChannels[0]||state.channels[0]).samples;
+  try{
+    const data=await apiFetch("/api/preprocess",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({samples:rawSamples,stage:stage.id,fs:state.fs,
+        lineNoiseHz:state.lineNoiseHz,threshold:Math.max(...state.channels.map(c=>c.stats.peak_to_peak))})});
+    stage._snr=data.stats?.snr_db;
+    renderPreprocessFlow(idx);
+  }catch(e){console.error("preprocess:",e.message);}
+}
+
+let autoTimer=null;
+function autoRunStages(){
+  if(state.autoRunning){clearInterval(autoTimer);state.autoRunning=false;document.getElementById("auto-run-btn").textContent="▶ AUTO";return;}
+  if(!state.ppVisible)togglePreprocess();
+  state.autoRunning=true;document.getElementById("auto-run-btn").textContent="■ STOP";
+  let idx=0;
+  autoTimer=setInterval(()=>{
+    if(idx>=STAGES.length){clearInterval(autoTimer);state.autoRunning=false;document.getElementById("auto-run-btn").textContent="▶ AUTO";return;}
+    runPreprocessStage(idx++);
+  },1400);
+}
+
+// LIVE pipeline: actually pushes data through every stage and animates the waveform
+async function runLivePipeline(){
+  if(!state.channels.length)return;
+  if(!state.ppVisible)togglePreprocess();
+  document.getElementById("ps-status").textContent="⚡ Running through pipeline...";
+  document.getElementById("live-btn").classList.add("loading");
+
+  const peakToPeak=Math.max(...state.channels.map(c=>c.stats.peak_to_peak));
+  const sourceChans=state.rawChannels.length?state.rawChannels:state.channels;
+  try{
+    const data=await apiFetch("/api/preprocess_all",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({channels:sourceChans.map(c=>({regionId:c.regionId,samples:c.samples})),
+        fs:state.fs,lineNoiseHz:state.lineNoiseHz,threshold:peakToPeak*1.2})});
+    // Animate through stages, replacing displayed channels at each step
+    for(let i=0;i<data.stages.length;i++){
+      const stg=data.stages[i];
+      state.channels=stg.channels.map((c,ci)=>({
+        regionId:c.regionId, samples:c.samples, stats:c.stats,
+        sampleRate:state.fs, isUploaded:sourceChans[ci]?.isUploaded
+      }));
+      STAGES[i]._snr=stg.snr_db;
+      renderPreprocessFlow(i);
+      renderCurrentTab();renderStats();
+      document.getElementById("ps-status").textContent=`Stage ${i+1}/${data.stages.length}: ${STAGES[i].name} • SNR ${stg.snr_db} dB`;
+      await new Promise(r=>setTimeout(r,700));
+    }
+    // After pipeline completes, recompute features with live values
+    state.liveMode=true;
+    document.getElementById("live-feat-tag").style.display="inline";
+    await loadFeatures(true);
+    renderFeatures();
+    document.getElementById("ps-status").textContent="✓ Pipeline complete · features extracted";
+    renderPreprocessFlow(STAGES.length-1);  // mark all done
+    setTimeout(()=>renderPreprocessFlow(-1),3000);
+  }catch(e){
+    console.error("live:",e);
+    document.getElementById("ps-status").textContent="✗ Error";
+  }
+  document.getElementById("live-btn").classList.remove("loading");
+}
+
+async function runGenerate(){
+  const btn=document.getElementById("run-btn");btn.classList.add("loading");btn.textContent="⏳ Generating…";
+  try{
+    const data=await apiFetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({regions:state.regions,bands:state.bands,epochLen:state.epochLen,focus:state.focus,seed:state.seed})});
+    state.channels=data.channels;
+    state.rawChannels=JSON.parse(JSON.stringify(data.channels));
+    state.fs=data.fs||FS;
+    state.liveMode=false;
+    document.getElementById("live-feat-tag").style.display="none";
+    await loadFeatures(false);
+    await loadStages(state.lineNoiseHz,Math.max(...state.channels.map(c=>c.stats.peak_to_peak)));
+    renderAll();
+  }catch(e){console.error("generate:",e.message);}
+  btn.classList.remove("loading");btn.textContent="▶ Generate Feature Embedding";
+}
+
+async function loadFeatures(includeLiveValues){
+  try{
+    const body={focus:state.focus,domains:state.domains,regions:state.regions,fs:state.fs};
+    if(includeLiveValues&&state.channels.length){
+      body.samplesByRegion={};
+      state.channels.forEach(c=>{body.samplesByRegion[c.regionId]=c.samples;});
+    }
+    const data=await apiFetch("/api/features",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    state.features=data.features;
+  }catch(e){console.error("features:",e.message);}
+}
+
+async function refresh(){await loadFeatures(state.liveMode);renderAll();}
+
+function handleDrop(e){e.preventDefault();document.getElementById("upload-zone").classList.remove("drag");processFile(e.dataTransfer.files[0]);}
+function handleFileInput(e){processFile(e.target.files[0]);}
+
+async function processFile(file){
+  if(!file)return;
+  const ext=file.name.split(".").pop().toLowerCase();
+  if(!["csv","txt","tsv"].includes(ext)){
+    document.getElementById("upload-error").textContent="Supported: .csv, .txt, .tsv";return;
+  }
+  document.getElementById("upload-error").textContent="";
+  document.getElementById("uz-content").innerHTML='<div class="uz-icon">⚡</div><div class="uz-title" style="color:#2563eb">Analyzing signal...</div>';
+  const fd=new FormData();fd.append("file",file);fd.append("fs",FS);
+  try{
+    const data=await apiFetch("/api/upload",{method:"POST",body:fd});
+    if(data.error){
+      document.getElementById("upload-error").textContent=data.error;
+      document.getElementById("uz-content").innerHTML='<div class="uz-icon">📂</div><div class="uz-title">Drop your EEG file here or click to browse</div><div class="uz-sub">Supported: .csv / .txt / .tsv</div>';
+      return;
+    }
+    state.channels=data.channels;
+    state.rawChannels=JSON.parse(JSON.stringify(data.channels));
+    state.fs=data.fs||FS;
+    state.analysis=data.analysis;
+
+    // Apply detected stages
+    if(data.stages){STAGES=data.stages;state.lineNoiseHz=data.analysis.summary.line_noise_hz||50;}
+
+    // AUTO-APPLY suggested config
+    applySuggestions(data.analysis.suggestions);
+
+    // Show detection panel
+    showDetectionPanel(data.analysis);
+
+    document.getElementById("uz-content").innerHTML=`<div style="color:#16a34a;font-family:var(--font-ui);font-size:12px;font-weight:700;margin-bottom:3px">✓ ${file.name}</div><div style="color:#9ca3af;font-size:10px">${data.rows} samples × ${data.cols} channels — analyzed</div>`;
+    document.getElementById("upload-name").textContent="✓ "+file.name;
+    document.getElementById("upload-name").style.display="inline";
+
+    state.liveMode=false;
+    document.getElementById("live-feat-tag").style.display="none";
+    await loadFeatures(false);
+    renderAll();
+    if(!state.ppVisible)togglePreprocess();
+  }catch(e){
+    console.error(e);
+    document.getElementById("upload-error").textContent="Parse error: "+e.message;
+  }
+}
+
+function applySuggestions(s){
+  if(!s)return;
+  // Replace state with detected suggestions
+  state.focus=s.focus||state.focus;
+  state.regions=s.regions||state.regions;
+  state.bands=s.bands||state.bands;
+  state.domains=s.domains||state.domains;
+  // Mark what was detected so chips show ✦ marker
+  state.detected={focus:[...(s.focus||[])],regions:[...(s.regions||[])],bands:[...(s.bands||[])],domains:[...(s.domains||[])]};
+  // Show "AUTO" tags
+  ["focus","region","band","domain"].forEach(k=>document.getElementById("auto-"+k).classList.add("show"));
+  // Rebuild chips with new state and detection markers
+  buildChips("chips-focus",CLINICAL_FOCUSES,"focus","on");
+  buildChips("chips-region",ELECTRODE_REGIONS,"regions","on-teal");
+  buildChips("chips-band",FREQUENCY_BANDS,"bands","on-violet",item=>`${item.label}<span style="font-size:9px;opacity:.6;margin-left:2px">${item.range}</span>`);
+  buildDomainChips();
+}
+
+function showDetectionPanel(analysis){
+  const sum=analysis.summary;const sug=analysis.suggestions;
+  const dp=document.getElementById("detect-panel");
+  dp.classList.add("visible");
+  document.getElementById("dp-conf").textContent=`Confidence: ${Math.round((sug.focusConfidence||0)*100)}%`;
+  const focusLabel=CLINICAL_FOCUSES.find(f=>f.id===sug.focus[0])?.label||sug.focus[0];
+  const spikeColor=sum.spike_total>2?"red":sum.spike_total>0?"amber":"green";
+  const lineColor=sum.line_noise_hz?"red":"green";
+  const snrColor=sum.avg_snr_db>15?"green":sum.avg_snr_db>5?"amber":"red";
+  const cells=[
+    ["Suggested Focus",focusLabel,"red"],
+    ["Channels Detected",sum.n_channels,""],
+    ["Sampling Rate",sum.fs_hz+" Hz",""],
+    ["Dominant Freq",sum.avg_dominant_hz+" Hz",""],
+    ["Spikes Counted",sum.spike_total,spikeColor],
+    ["Line Noise",sum.line_noise_hz?sum.line_noise_hz+" Hz":"none",lineColor],
+    ["HFO Detected",sum.hfo_detected?"YES":"no",sum.hfo_detected?"red":""],
+    ["Avg SNR",sum.avg_snr_db+" dB",snrColor],
+    ["Top Band","δ "+(sum.band_powers_rel.delta*100).toFixed(0)+"% θ "+(sum.band_powers_rel.theta*100).toFixed(0)+"% α "+(sum.band_powers_rel.alpha*100).toFixed(0)+"%",""],
+  ];
+  document.getElementById("dp-grid").innerHTML=cells.map(([k,v,c])=>
+    `<div class="dp-cell"><div class="dp-k">${k}</div><div class="dp-v ${c}">${v}</div></div>`).join("");
+}
+
+function renderAll(){renderHeader();renderLegend();renderCurrentTab();renderStats();renderFeatures();renderConfig();updateConnWarn();}
+
+function renderHeader(){
+  const isSeizure=state.focus.includes("seizure");
+  document.getElementById("badge-seizure").style.display=isSeizure?"inline":"none";
+  document.getElementById("hd-info").textContent=`${state.fs}Hz · ${state.channels.length}ch · ${state.epochLen}s`;
+  const dim=state.features.length*state.regions.length;
+  document.getElementById("badge-dim").textContent=dim+"D";
+}
+
+function renderLegend(){
+  document.getElementById("legend").innerHTML=state.channels.map((ch,i)=>
+    `<div class="legend-item"><div class="legend-line" style="background:${REGION_COLORS[i%REGION_COLORS.length]}"></div>
+    <span class="legend-label">${ch.regionId}${ch.isUploaded?' <span style="font-size:9px;color:#9ca3af">(uploaded)</span>':""}</span></div>`
+  ).join("");
+}
+
+function renderCurrentTab(){if(state.plotTab==="waveform")drawWaveform();else if(state.plotTab==="psd")drawPSD();else drawTable();}
+
+function drawWaveform(){
+  const canvas=document.getElementById("waveform-canvas");
+  const ch=state.channels;if(!ch.length)return;
+  const H=Math.min(ch.length*46,360);canvas.height=H;canvas.style.height=H+"px";
+  const W=canvas.width=canvas.offsetWidth||900;
+  const ctx=canvas.getContext("2d");ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#fafafa";ctx.fillRect(0,0,W,H);
+  const trackH=H/ch.length;
+  ctx.strokeStyle="#f1f5f9";ctx.lineWidth=0.5;
+  for(let x=0;x<W;x+=W/10){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let i=0;i<=ch.length;i++){const y=trackH*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const N=ch[0].samples.length;
+  // Auto-scale per channel for clean rendering
+  ch.forEach((c,ci)=>{
+    const yC=trackH*ci+trackH/2;
+    const peakAbs=Math.max(...c.samples.map(Math.abs))||1;
+    const scale=trackH*0.40/peakAbs;
+    ctx.fillStyle=REGION_COLORS[ci%REGION_COLORS.length];ctx.font="bold 9px monospace";
+    ctx.fillText(String(c.regionId).toUpperCase().slice(0,5),5,trackH*ci+12);
+    ctx.beginPath();ctx.strokeStyle=REGION_COLORS[ci%REGION_COLORS.length];ctx.lineWidth=1.2;ctx.globalAlpha=0.85;
+    for(let px=0;px<W;px++){const si=Math.floor(px*N/W),v=c.samples[si]||0;const y=yC-v*scale;px===0?ctx.moveTo(px,y):ctx.lineTo(px,y);}
+    ctx.stroke();ctx.globalAlpha=1;
+  });
+  ctx.fillStyle="#9ca3af";ctx.font="9px monospace";
+  const totalSec=N/state.fs;
+  const stepS=Math.max(0.5,totalSec/8);
+  for(let s=0;s<=totalSec;s+=stepS){ctx.fillText(s.toFixed(1)+"s",(s/totalSec)*W+2,H-3);}
+}
+
+function drawPSD(){
+  const canvas=document.getElementById("psd-canvas");
+  const ch=state.channels;if(!ch.length)return;
+  const W=canvas.width=canvas.offsetWidth||900,H=80;
+  const ctx=canvas.getContext("2d");ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#fafafa";ctx.fillRect(0,0,W,H);
+  // If we have real analysis use that; else show synthetic-style PSD
+  const maxF=80,pts=300;
+  let bandPowers=null;
+  if(state.analysis&&state.analysis.summary){bandPowers=state.analysis.summary.band_powers_avg;}
+  const BP={delta:{freq:2,amp:bandPowers?bandPowers.delta*1e3:12},theta:{freq:6,amp:bandPowers?bandPowers.theta*1e3:7},
+    alpha:{freq:10,amp:bandPowers?bandPowers.alpha*1e3:5},beta:{freq:20,amp:bandPowers?bandPowers.beta*1e3:3},
+    gamma:{freq:40,amp:bandPowers?bandPowers.gamma*1e3:1.5},hfo:{freq:70,amp:bandPowers?bandPowers.hfo*1e3:0.8}};
+  ch.forEach((c,ci)=>{
+    ctx.beginPath();ctx.strokeStyle=REGION_COLORS[ci%REGION_COLORS.length];ctx.lineWidth=1.5;ctx.globalAlpha=0.75;
+    let maxPSD=0.001;
+    for(const k in BP)if(BP[k].amp>maxPSD)maxPSD=BP[k].amp;
+    for(let px=0;px<pts;px++){
+      const f=(px/pts)*maxF;let psd=0;
+      state.bands.forEach(bid=>{const b=BP[bid];if(!b)return;psd+=b.amp*Math.exp(-0.5*((f-b.freq)/2)**2);});
+      psd*=(0.8+0.4*((ci*0.3)%1));
+      const x=(f/maxF)*W,y=H-(psd/maxPSD)*H*0.85;
+      px===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();ctx.globalAlpha=1;
+  });
+  const BL={delta:"δ",theta:"θ",alpha:"α",beta:"β",gamma:"γ",hfo:"HFO"};
+  const BF={delta:2,theta:6,alpha:10,beta:20,gamma:40,hfo:70};
+  state.bands.forEach(bid=>{
+    const f=Math.min(BF[bid]||10,78),x=(f/maxF)*W;
+    ctx.fillStyle="#9ca3af";ctx.font="8px monospace";ctx.fillText(BL[bid]||bid,x-8,H-4);
+    ctx.strokeStyle="#e5e7eb";ctx.lineWidth=0.5;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-14);ctx.stroke();ctx.setLineDash([]);
+  });
+}
+
+function drawTable(){
+  const ch=state.channels;if(!ch.length)return;
+  const N=ch[0].samples.length,rowsPerPage=20;
+  const totalPages=Math.ceil(N/rowsPerPage);
+  const page=Math.min(state.tablePage,totalPages-1);
+  const start=page*rowsPerPage;
+  const rows=Array.from({length:Math.min(rowsPerPage,N-start)},(_,i)=>start+i);
+  document.getElementById("pg-info").textContent=`Samples ${start+1}–${Math.min(start+rowsPerPage,N)} of ${N} · FS=${state.fs}Hz`;
+  document.getElementById("pg-num").textContent=`${page+1}/${totalPages}`;
+  document.querySelectorAll(".pg-btn")[0].disabled=page===0;
+  document.querySelectorAll(".pg-btn")[1].disabled=page>=totalPages-1;
+  const thead=document.querySelector("#raw-table thead");
+  const tbody=document.querySelector("#raw-table tbody");
+  thead.innerHTML=`<tr><th>SAMPLE</th><th>TIME (s)</th>${ch.map((c,i)=>`<th class="r" style="color:${REGION_COLORS[i%REGION_COLORS.length]}">${String(c.regionId).toUpperCase().slice(0,5)}</th>`).join("")}</tr>`;
+  tbody.innerHTML=rows.map(idx=>{
+    const cells=ch.map(c=>{const v=c.samples[idx]||0,abs=Math.abs(v),hi=abs>1.5;return`<td style="text-align:right;color:${hi?"#dc2626":abs>.8?"#d97706":"#374151"};font-weight:${hi?600:400}">${v.toFixed(4)}</td>`;}).join("");
+    return`<tr><td style="color:#9ca3af">${idx}</td><td style="color:#6b7280">${(idx/state.fs).toFixed(4)}</td>${cells}</tr>`;
+  }).join("");
+}
+
+function changePage(delta){state.tablePage=Math.max(0,state.tablePage+delta);drawTable();}
+
+function renderStats(){
+  document.getElementById("stats-strip").innerHTML=state.channels.slice(0,5).map((ch,ci)=>{
+    const s=ch.stats||{},color=REGION_COLORS[ci%REGION_COLORS.length];
+    return`<div class="stat-card" style="border-top-color:${color}">
+      <div class="stat-region" style="color:${color}">${String(ch.regionId).slice(0,5)}</div>
+      <div class="stat-grid">
+        <span class="stat-k">μ</span><span class="stat-v">${(s.mean||0).toFixed(3)}</span>
+        <span class="stat-k">σ²</span><span class="stat-v">${(s.variance||0).toFixed(3)}</span>
+        <span class="stat-k">RMS</span><span class="stat-v">${(s.rms||0).toFixed(3)}</span>
+        <span class="stat-k">ZCR</span><span class="stat-v">${s.zcr||0}</span>
+        <span class="stat-k">Kurt</span><span class="stat-v">${(s.kurtosis||0).toFixed(2)}</span>
+        <span class="stat-k">P-P</span><span class="stat-v">${(s.peak_to_peak||0).toFixed(3)}</span>
+      </div></div>`;
+  }).join("");
+}
+
+function renderFeatures(){
+  const feats=state.features;
+  const prioCount=feats.filter(f=>f.priority).length;
+  document.getElementById("feat-summary").innerHTML=`<b style="color:#0f172a">${feats.length}</b> features · <b style="color:#0f172a">${state.regions.length}</b> region(s) · <b style="color:#0f172a">${state.bands.length}</b> bands`;
+  document.getElementById("sb-total").textContent=feats.length;
+  document.getElementById("sb-prio").textContent=prioCount;
+  const dim=feats.length*state.regions.length;
+  document.getElementById("sb-dim").textContent=dim;
+  document.getElementById("badge-dim").textContent=dim+"D";
+  const wrap=document.getElementById("feat-list-wrap");
+  if(!feats.length){wrap.innerHTML='<div class="feat-empty">Select domains to see features</div>';return;}
+  wrap.innerHTML=feats.map((f,i)=>{
+    const c=DC[f.domain];
+    const valDisplay=f.valueStr?`<span class="frow-val" title="${f.valueStr}">${String(f.valueStr).slice(0,18)}</span>`:"";
+    return`<div class="frow${f.priority?" pri":""}" style="animation-delay:${Math.min(i*10,260)}ms">
+      <div class="frow-left">
+        ${f.priority?'<span class="star">★</span>':""}
+        <span class="frow-name" style="color:${f.priority?"#92400e":"#374151"};font-weight:${f.priority?600:400}">${f.name}</span>
+        ${valDisplay}
+      </div>
+      <div class="frow-tags">
+        <span class="dtag" style="background:${c.bg};color:${c.text};border:1px solid ${c.border}">${c.ds}</span>
+      </div></div>`;
+  }).join("");
+}
+
+function renderConfig(){
+  const src=state.source==="upload"?(document.getElementById("upload-name").textContent||"uploaded"):"synthetic";
+  const rows=[["Source",src,"#16a34a"],["Focus",`${state.focus.length} selected`,"#2563eb"],
+    ["Regions",`${state.regions.length}`,"#0e7490"],["Epoch",`${state.epochLen}s / ${state.overlap}%`,"#6d28d9"],
+    ["Bands",`${state.bands.length} active`,"#7c3aed"],["Domains",`${state.domains.length}/5`,"#1d4ed8"],
+    ["Sample Rate",`${state.fs} Hz`,"#0f172a"],["Line Noise",`${state.lineNoiseHz} Hz`,state.lineNoiseHz?"#be123c":"#16a34a"]];
+  document.getElementById("cfg-grid").innerHTML=rows.map(([k,v,c])=>`<div><span class="cfg-k">${k}: </span><span class="cfg-v" style="color:${c}">${v}</span></div>`).join("");
+}
+
+function updateConnWarn(){document.getElementById("conn-warn").style.display=(state.regions.length<2&&state.domains.includes("connectivity"))?"block":"none";}
+
+async function init(){
+  // Pre-flight: confirm backend reachable. If not, banner is shown and we stop.
+  if(location.protocol==="file:"){
+    showBanner(`This page must be served by Flask, not opened directly.<br>` +
+               `1. In a terminal: <code>python app.py</code><br>` +
+               `2. Open <a href="http://localhost:5050">http://localhost:5050</a>`,"err");
+    return;
+  }
+  try{
+    await apiFetch("/api/stages",{method:"GET"});
+  }catch(e){
+    // banner is already shown by apiFetch; halt init so we don't crash further
+    console.error("init aborted:",e.message);
+    return;
+  }
+  buildChips("chips-focus",CLINICAL_FOCUSES,"focus","on");
+  buildChips("chips-region",ELECTRODE_REGIONS,"regions","on-teal");
+  buildChips("chips-band",FREQUENCY_BANDS,"bands","on-violet",item=>`${item.label}<span style="font-size:9px;opacity:.6;margin-left:2px">${item.range}</span>`);
+  buildDomainChips();
+  initSlider("sl-epoch",4,1,30);initSlider("sl-overlap",70,0,90);initSlider("sl-wavelet",6,1,10);
+  await loadStages();
+  await runGenerate();
+}
+window.addEventListener("resize",()=>{if(state.plotTab!=="table")renderCurrentTab();});
+init();
+</script>
+</body>
+</html>

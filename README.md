@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Flask-Web_Interface-000000?logo=flask&logoColor=white" />
   <img src="https://img.shields.io/badge/EEG-Signal_Processing-2F6BFF" />
+  <a href="https://github.com/shaiksadik1725-droid/EEG_EPILEPSY/actions/workflows/python-syntax.yml"><img src="https://github.com/shaiksadik1725-droid/EEG_EPILEPSY/actions/workflows/python-syntax.yml/badge.svg" alt="Python syntax check" /></a>
 </p>
 
 ## Project at a Glance
